@@ -370,6 +370,11 @@ with tab3:
     plt.grid(True)
     st.pyplot(fig)
 
+# Add the 700 developers image before B2B Leads Listing
+col1, col2, col3 = st.columns([1, 3, 1])
+with col2:
+    st.image("images/700_developers.png", use_container_width=True)
+
 # Filters section
 st.header("B2B Leads Listing")
 col1, col2, col3 = st.columns(3)
