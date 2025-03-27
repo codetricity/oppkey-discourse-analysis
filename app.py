@@ -401,7 +401,7 @@ if country_filter:
 
 # Exclude Ricoh and Oppkey if toggle is on
 if exclude_ricoh_oppkey:
-    filtered_display = filtered_display[~filtered_display['organization'].str.lower().isin(['ricoh', 'oppkey'])]
+    filtered_display = filtered_display[~filtered_display['organization'].str.lower().str.contains('ricoh|oppkey', case=False, na=False)]
 
 # Remove specified columns
 columns_to_remove = ['user_id', 'username', 'last_ip_latitude', 'last_ip_longitude', 'registration_ip_longitude']
