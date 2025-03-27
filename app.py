@@ -254,9 +254,79 @@ with col2:
     st.image("images/posts_read.png", use_container_width=True)
 
 # Create tabs for different visualizations
-tab1, tab2, tab3 = st.tabs(["Registration Patterns", "Geographic Distribution", "Developer Engagement"])
+tab1, tab2, tab3 = st.tabs(["Developer Engagement", "Geographic Distribution", "Registration Patterns"])
 
 with tab1:
+    # User Engagement Analysis
+    st.subheader("Developer Engagement Over Time")
+    
+    # Show total posts read across all time
+    total_posts_read = all_data['posts_read'].sum()
+    st.metric("Total Posts Read (All Time)", f"{total_posts_read:,}")
+    
+    engagement_data = all_data[['created_at', 'posts_read']].copy()
+    engagement_data['created_at'] = pd.to_datetime(engagement_data['created_at'])
+    engagement_data['date'] = engagement_data['created_at'].dt.date
+    
+    # Calculate cumulative posts read over time
+    daily_posts = engagement_data.groupby('date')['posts_read'].sum()
+    cumulative_posts = daily_posts.cumsum()
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    cumulative_posts.plot(kind='line', ax=ax, marker='o')
+    plt.title('Cumulative Posts Read Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('Total Posts Read')
+    plt.grid(True)
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
+    # Engagement by Region
+    st.subheader("Engagement by Region")
+    region_engagement = all_data.groupby('country')['posts_read'].mean().sort_values(ascending=False)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    region_engagement.head(10).plot(kind='bar', ax=ax)
+    plt.title('Top 10 Countries by Average Engagement')
+    plt.xlabel('Country')
+    plt.ylabel('Average Posts Read')
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
+with tab2:
+    # Geographic Distribution
+    st.subheader("Registration Density by Country")
+    country_counts = all_data['country'].value_counts()
+    fig, ax = plt.subplots(figsize=(12, 6))
+    country_counts.head(15).plot(kind='bar', ax=ax)
+    plt.title('Top 15 Countries by Registration Count')
+    plt.xlabel('Country')
+    plt.ylabel('Number of Registrations')
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+    
+    # EU vs Non-EU Distribution
+    st.subheader("EU vs Non-EU Distribution")
+    eu_counts = all_data['last_ip_is_eu_member'].value_counts()
+    fig, ax = plt.subplots(figsize=(8, 6))
+    eu_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax)
+    plt.title('Distribution of EU vs Non-EU Developers')
+    plt.axis('equal')
+    st.pyplot(fig)
+
+    # US States Distribution
+    st.subheader("Top US States Distribution")
+    us_data = all_data[all_data['last_ip_country'] == 'United States']
+    state_counts = us_data['last_ip_state'].value_counts()
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    state_counts.head(15).plot(kind='bar', ax=ax)
+    plt.title('Top 15 US States by Registration Count')
+    plt.xlabel('State')
+    plt.ylabel('Number of Registrations')
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
+with tab3:
     # Registration Time Analysis
     st.subheader("Registration Time Patterns")
     
@@ -298,63 +368,6 @@ with tab1:
     plt.xlabel('Day of Week')
     plt.ylabel('Number of Registrations')
     plt.grid(True)
-    st.pyplot(fig)
-
-with tab2:
-    # Geographic Distribution
-    st.subheader("Registration Density by Country")
-    country_counts = all_data['country'].value_counts()
-    fig, ax = plt.subplots(figsize=(12, 6))
-    country_counts.head(15).plot(kind='bar', ax=ax)
-    plt.title('Top 15 Countries by Registration Count')
-    plt.xlabel('Country')
-    plt.ylabel('Number of Registrations')
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
-    
-    # EU vs Non-EU Distribution
-    st.subheader("EU vs Non-EU Distribution")
-    eu_counts = all_data['last_ip_is_eu_member'].value_counts()
-    fig, ax = plt.subplots(figsize=(8, 6))
-    eu_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax)
-    plt.title('Distribution of EU vs Non-EU Developers')
-    plt.axis('equal')
-    st.pyplot(fig)
-
-with tab3:
-    # User Engagement Analysis
-    st.subheader("Developer Engagement Over Time")
-    
-    # Show total posts read across all time
-    total_posts_read = all_data['posts_read'].sum()
-    st.metric("Total Posts Read (All Time)", f"{total_posts_read:,}")
-    
-    engagement_data = all_data[['created_at', 'posts_read']].copy()
-    engagement_data['created_at'] = pd.to_datetime(engagement_data['created_at'])
-    engagement_data['date'] = engagement_data['created_at'].dt.date
-    
-    # Calculate cumulative posts read over time
-    daily_posts = engagement_data.groupby('date')['posts_read'].sum()
-    cumulative_posts = daily_posts.cumsum()
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    cumulative_posts.plot(kind='line', ax=ax, marker='o')
-    plt.title('Cumulative Posts Read Over Time')
-    plt.xlabel('Date')
-    plt.ylabel('Total Posts Read')
-    plt.grid(True)
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
-
-    # Engagement by Region
-    st.subheader("Engagement by Region")
-    region_engagement = all_data.groupby('country')['posts_read'].mean().sort_values(ascending=False)
-    fig, ax = plt.subplots(figsize=(10, 6))
-    region_engagement.head(10).plot(kind='bar', ax=ax)
-    plt.title('Top 10 Countries by Average Engagement')
-    plt.xlabel('Country')
-    plt.ylabel('Average Posts Read')
-    plt.xticks(rotation=45)
     st.pyplot(fig)
 
 # Filters section
