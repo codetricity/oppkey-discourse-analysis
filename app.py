@@ -422,16 +422,27 @@ col1, col2, col3 = st.columns([1, 3, 1])
 with col2:
     st.image("images/posts_read.png", use_container_width=True)
 
-# View Reports section moved to bottom
+# View Reports section
 st.header("Sales Kit Sample")
 
-# Single button for the report
-if st.button("View Sample"):
-    st.session_state.show_pdf1 = not st.session_state.show_pdf1
+# Dropdown for report selection
+report_selection = st.selectbox(
+    "Select a report to view",
+    ["Select a report", "360 Camera Sales Kit", "DeveloperWeek Report", "Close viewer"],
+    key="report_selector"
+)
 
-# Display PDF in full width
-if st.session_state.show_pdf1:
+# Handle report selection
+if report_selection == "360 Camera Sales Kit":
     try:
         pdf_viewer("reports/camera360-sales.pdf", width=1000)
     except Exception as e:
         st.error(f"Error loading PDF: {str(e)}")
+elif report_selection == "DeveloperWeek Report":
+    try:
+        pdf_viewer("reports/360camera-developerweek.pdf", width=1000)
+    except Exception as e:
+        st.error(f"Error loading PDF: {str(e)}")
+elif report_selection == "Close viewer":
+    # This will effectively close the viewer by not showing any PDF
+    pass
