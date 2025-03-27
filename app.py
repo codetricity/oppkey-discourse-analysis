@@ -225,10 +225,6 @@ else:
     registrations.index = registrations.index.strftime('%Y-%m')
     xlabel = "Month"
 
-# Print registration counts for debugging
-st.write("Registration counts by period:")
-st.write(registrations)
-
 # Create line chart
 fig, ax = plt.subplots(figsize=(10, 6))
 registrations.plot(kind='line', ax=ax, marker='o')
@@ -238,6 +234,10 @@ plt.ylabel('Number of Registrations')
 plt.grid(True)
 plt.xticks(rotation=45)
 st.pyplot(fig)
+
+# Print registration counts for debugging
+st.write("Registration counts by period:")
+st.write(registrations)
 
 # Show summary metrics for the selected period
 col1, col2, col3 = st.columns(3)
@@ -251,7 +251,7 @@ st.header("Additional Analytics")
 # Add the posts read image at 60% width
 col1, col2, col3 = st.columns([1, 3, 1])
 with col2:
-    st.image("images/posts_read.png", use_container_width=True)
+    st.image("images/read_logged_in.png", use_container_width=True)
 
 # Create tabs for different visualizations
 tab1, tab2, tab3 = st.tabs(["Developer Engagement", "Geographic Distribution", "Registration Patterns"])
@@ -416,6 +416,11 @@ filtered_display = filtered_display[new_column_order]
 
 # Display filtered data
 st.dataframe(filtered_display)
+
+# Add the posts read image before Sales Kit Sample
+col1, col2, col3 = st.columns([1, 3, 1])
+with col2:
+    st.image("images/posts_read.png", use_container_width=True)
 
 # View Reports section moved to bottom
 st.header("Sales Kit Sample")
