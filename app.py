@@ -413,15 +413,15 @@ filtered_display = filtered_display[new_column_order]
 st.dataframe(filtered_display)
 
 # View Reports section moved to bottom
-st.header("View Report")
+st.header("Sales Kit Sample")
 
 # Single button for the report
-if st.button("View Report"):
+if st.button("View Sample"):
     st.session_state.show_pdf1 = not st.session_state.show_pdf1
 
 # Display PDF in full width
 if st.session_state.show_pdf1:
     try:
-        pdf_viewer("reports/likely_theta_buyers_us.pdf", width=1000)
+        pdf_viewer("reports/camera360-sales.pdf", width=1000)
     except Exception as e:
         st.error(f"Error loading PDF: {str(e)}")
