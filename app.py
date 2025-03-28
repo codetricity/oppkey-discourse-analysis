@@ -4,6 +4,9 @@ from streamlit_pdf_viewer import pdf_viewer
 import matplotlib.pyplot as plt
 from datetime import datetime
 import pytz
+import pydeck as pdk
+import os
+from pathlib import Path
 
 # Set page config including browser tab title
 st.set_page_config(
@@ -69,6 +72,26 @@ if 'show_pdf1' not in st.session_state:
     st.session_state.show_pdf1 = False
 if 'show_pdf2' not in st.session_state:
     st.session_state.show_pdf2 = False
+
+with st.sidebar:
+    # Add this line to make the sidebar collapsed by default
+    st.markdown('<style>#root > div:nth-child(1) > div.withScreencast > div > div > div > section.css-163ttbj.e1fqkh3o11 {visibility: collapse;} </style>', unsafe_allow_html=True)
+    
+    st.header("Feedback Reports")
+    
+    # Get list of markdown files in feedback directory
+    feedback_dir = Path("./feedback")
+    markdown_files = list(feedback_dir.glob("*.md"))
+    
+    # Create buttons for each markdown file
+    for md_file in markdown_files:
+        if st.button(md_file.stem.replace("_", " ").title()):
+            with open(md_file, "r") as f:
+                markdown_content = f.read()
+            # Show the markdown content in the main area
+            st.markdown(markdown_content)
+            # Add a divider for better visual separation
+            st.divider()
 
 st.title("360Camera B2B Sales Leads")
 
@@ -149,9 +172,12 @@ region_filter = st.selectbox(
     ["All Regions", "United States", "European Union", "Japan", "India"]
 )
 
-# Create a dataframe with lat/long for mapping
-map_data = all_data[['last_ip_latitude', 'last_ip_longitude', 'last_ip_country', 'last_ip_is_eu_member']].copy()
-map_data.columns = ['latitude', 'longitude', 'country', 'is_eu']  # Rename for clarity
+# Create a dataframe with lat/long and tooltip info for mapping
+map_data = all_data[['last_ip_latitude', 'last_ip_longitude', 'last_ip_country', 
+                     'last_ip_is_eu_member', 'organization', 'last_ip_city', 
+                     'last_ip_state', 'username', 'posts_read']].copy()
+map_data.columns = ['latitude', 'longitude', 'country', 'is_eu', 
+                    'organization', 'city', 'state', 'username', 'posts_read']  # Rename for clarity
 
 # Apply region filters
 if region_filter == "United States":
@@ -163,11 +189,55 @@ elif region_filter == "Japan":
 elif region_filter == "India":
     map_data = map_data[map_data['country'] == 'India']
 
-# Keep only the columns needed for the map
-map_data = map_data[['latitude', 'longitude']].dropna()
+# Keep all columns for tooltip display
+map_data = map_data.dropna(subset=['latitude', 'longitude'])
 
-# Display the map
-st.map(map_data, use_container_width=True)
+# Add organization_html to the data
+map_data['organization_html'] = map_data['organization'].apply(
+    lambda x: f"<b>Organization:</b> {x}<br/>" if pd.notna(x) else ""
+)
+
+# Create the deck map
+view_state = pdk.ViewState(
+    latitude=20,
+    longitude=0,
+    zoom=1,
+    pitch=0
+)
+
+scatter_layer = pdk.Layer(
+    'ScatterplotLayer',
+    map_data,
+    get_position=['longitude', 'latitude'],
+    get_color=[255, 0, 0, 140],  # Red with some transparency
+    get_radius=25000,  # Reduced size of the points
+    radius_min_pixels=3,  # Minimum radius when zoomed out
+    radius_max_pixels=15,  # Maximum radius when zoomed in
+    pickable=True,
+    auto_highlight=True,
+    highlight_color=[255, 0, 0, 200]  # Highlight color when hovering
+)
+
+# Create and display the map
+deck = pdk.Deck(
+    layers=[scatter_layer],
+    initial_view_state=view_state,
+    map_style='mapbox://styles/mapbox/light-v9',
+    tooltip={
+        "html": "<b>Username:</b> {username}<br/>"
+                "{organization_html}"
+                "<b>Location:</b> {city}, {state}, {country}<br/>"
+                "<b>Posts Read:</b> {posts_read}",
+        "style": {
+            "backgroundColor": "white",
+            "color": "black",
+            "fontSize": "0.8em",
+            "padding": "5px"
+        }
+    }
+)
+
+st.pydeck_chart(deck)
 
 # Show the count of displayed points
 st.caption(f"Showing {len(map_data)} locations in {region_filter}")
