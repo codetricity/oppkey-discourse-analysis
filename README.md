@@ -20,7 +20,7 @@ pip install -r requirements.txt
 ## Run
 
 ```
-streamlit run main.py
+streamlit run app.py
 ```
 
 ## Features Gallery
