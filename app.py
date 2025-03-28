@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import pytz
 import pydeck as pdk
+import os
+from pathlib import Path
 
 # Set page config including browser tab title
 st.set_page_config(
@@ -70,6 +72,26 @@ if 'show_pdf1' not in st.session_state:
     st.session_state.show_pdf1 = False
 if 'show_pdf2' not in st.session_state:
     st.session_state.show_pdf2 = False
+
+with st.sidebar:
+    # Add this line to make the sidebar collapsed by default
+    st.markdown('<style>#root > div:nth-child(1) > div.withScreencast > div > div > div > section.css-163ttbj.e1fqkh3o11 {visibility: collapse;} </style>', unsafe_allow_html=True)
+    
+    st.header("Feedback Reports")
+    
+    # Get list of markdown files in feedback directory
+    feedback_dir = Path("./feedback")
+    markdown_files = list(feedback_dir.glob("*.md"))
+    
+    # Create buttons for each markdown file
+    for md_file in markdown_files:
+        if st.button(md_file.stem.replace("_", " ").title()):
+            with open(md_file, "r") as f:
+                markdown_content = f.read()
+            # Show the markdown content in the main area
+            st.markdown(markdown_content)
+            # Add a divider for better visual separation
+            st.divider()
 
 st.title("360Camera B2B Sales Leads")
 
