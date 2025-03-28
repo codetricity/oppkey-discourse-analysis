@@ -4,6 +4,7 @@ from streamlit_pdf_viewer import pdf_viewer
 import matplotlib.pyplot as plt
 from datetime import datetime
 import pytz
+import pydeck as pdk
 
 # Set page config including browser tab title
 st.set_page_config(
@@ -149,9 +150,12 @@ region_filter = st.selectbox(
     ["All Regions", "United States", "European Union", "Japan", "India"]
 )
 
-# Create a dataframe with lat/long for mapping
-map_data = all_data[['last_ip_latitude', 'last_ip_longitude', 'last_ip_country', 'last_ip_is_eu_member']].copy()
-map_data.columns = ['latitude', 'longitude', 'country', 'is_eu']  # Rename for clarity
+# Create a dataframe with lat/long and tooltip info for mapping
+map_data = all_data[['last_ip_latitude', 'last_ip_longitude', 'last_ip_country', 
+                     'last_ip_is_eu_member', 'organization', 'last_ip_city', 
+                     'last_ip_state', 'username', 'posts_read']].copy()
+map_data.columns = ['latitude', 'longitude', 'country', 'is_eu', 
+                    'organization', 'city', 'state', 'username', 'posts_read']  # Rename for clarity
 
 # Apply region filters
 if region_filter == "United States":
@@ -163,11 +167,55 @@ elif region_filter == "Japan":
 elif region_filter == "India":
     map_data = map_data[map_data['country'] == 'India']
 
-# Keep only the columns needed for the map
-map_data = map_data[['latitude', 'longitude']].dropna()
+# Keep all columns for tooltip display
+map_data = map_data.dropna(subset=['latitude', 'longitude'])
 
-# Display the map
-st.map(map_data, use_container_width=True)
+# Add organization_html to the data
+map_data['organization_html'] = map_data['organization'].apply(
+    lambda x: f"<b>Organization:</b> {x}<br/>" if pd.notna(x) else ""
+)
+
+# Create the deck map
+view_state = pdk.ViewState(
+    latitude=20,
+    longitude=0,
+    zoom=1,
+    pitch=0
+)
+
+scatter_layer = pdk.Layer(
+    'ScatterplotLayer',
+    map_data,
+    get_position=['longitude', 'latitude'],
+    get_color=[255, 0, 0, 140],  # Red with some transparency
+    get_radius=25000,  # Reduced size of the points
+    radius_min_pixels=3,  # Minimum radius when zoomed out
+    radius_max_pixels=15,  # Maximum radius when zoomed in
+    pickable=True,
+    auto_highlight=True,
+    highlight_color=[255, 0, 0, 200]  # Highlight color when hovering
+)
+
+# Create and display the map
+deck = pdk.Deck(
+    layers=[scatter_layer],
+    initial_view_state=view_state,
+    map_style='mapbox://styles/mapbox/light-v9',
+    tooltip={
+        "html": "<b>Username:</b> {username}<br/>"
+                "{organization_html}"
+                "<b>Location:</b> {city}, {state}, {country}<br/>"
+                "<b>Posts Read:</b> {posts_read}",
+        "style": {
+            "backgroundColor": "white",
+            "color": "black",
+            "fontSize": "0.8em",
+            "padding": "5px"
+        }
+    }
+)
+
+st.pydeck_chart(deck)
 
 # Show the count of displayed points
 st.caption(f"Showing {len(map_data)} locations in {region_filter}")
