@@ -473,19 +473,44 @@ if country_filter:
 if exclude_ricoh_oppkey:
     filtered_display = filtered_display[~filtered_display['organization'].str.lower().str.contains('ricoh|oppkey', case=False, na=False)]
 
+# Create a new column for the links
+filtered_display['profile_link'] = filtered_display['username'].apply(
+    lambda x: f"https://community.theta360.guide/u/{x}/summary" if pd.notna(x) else ''
+)
+
 # Remove specified columns
-columns_to_remove = ['user_id', 'username', 'last_ip_latitude', 'last_ip_longitude', 'registration_ip_longitude']
+columns_to_remove = ['user_id', 'Username', 'last_ip_latitude', 'last_ip_longitude', 
+                    'registration_ip_longitude', 'hour', 'day_of_week', 
+                    'registration_ip_latitude']
 filtered_display = filtered_display.drop(columns=columns_to_remove, errors='ignore')
 
-# Reorder columns to show organization and country first
+# Reorder columns to show organization, country, state, then name
 remaining_columns = filtered_display.columns.tolist()
-remaining_columns.remove('organization')
-remaining_columns.remove('country')
-new_column_order = ['organization', 'country'] + remaining_columns
+
+# Safely remove columns if they exist
+for col in ['organization', 'country', 'last_ip_state', 'name', 'profile_link']:
+    if col in remaining_columns:
+        remaining_columns.remove(col)
+
+new_column_order = ['organization', 'country', 'last_ip_state', 'name', 'profile_link'] + remaining_columns
+
 filtered_display = filtered_display[new_column_order]
 
-# Display filtered data
-st.dataframe(filtered_display)
+# Display filtered data without index
+st.dataframe(
+    filtered_display, 
+    hide_index=True,
+    column_config={
+        "name": "Name",
+        "last_ip_state": "State",
+        "profile_link": st.column_config.LinkColumn(
+            "Profile",
+            help="Click to view user profile",
+            width="small",
+            display_text="View"
+        )
+    }
+)
 
 # Add the posts read image before Sales Kit Sample
 col1, col2, col3 = st.columns([1, 3, 1])
