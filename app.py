@@ -7,6 +7,7 @@ import pytz
 import pydeck as pdk
 import os
 from pathlib import Path
+import altair as alt
 
 # Set page config including browser tab title
 st.set_page_config(
@@ -148,11 +149,38 @@ countries = users_per_country.dropna().nunique()
 col1, col2, col3 = st.columns(3)
 col1.metric(label="360 Camera Devs", value=unique_user_ids, border=True)
 col2.metric(label="Unique Organizations", value=unique_orgs, border=True)
-col3.metric(label="Countries", value=countries, border=True)
+
+with col3:
+    st.markdown(
+        f"""
+        <div style='display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; border: 1px solid #eee; border-radius: 8px;'>
+            <div style='font-size: 18px; color: gray;'>Countries</div>
+            <div style='font-size: 36px; font-weight: bold; color: black;'>{countries}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # Bar chart with country
-st.write("Top 20 Countries With Most Users")
-st.bar_chart(data=users_per_country.nlargest(20))
+st.write("Top 10 Countries With Most Users")
+
+# Prepare the data
+top_countries = users_per_country.nlargest(10).reset_index()
+top_countries.columns = ['Country', 'Users']
+
+# Sort by Users ascending for left-to-right
+top_countries = top_countries.sort_values('Users', ascending=False)
+
+# Create horizontal bar chart
+chart = alt.Chart(top_countries).mark_bar().encode(
+    x='Users:Q',
+    y=alt.Y('Country:N', sort=top_countries['Country'].tolist())
+).properties(
+    height=500,
+    width=700
+)
+
+st.altair_chart(chart)
 
 # Add the 9 years image at 60% width
 col1, col2, col3 = st.columns([1, 3, 1])
