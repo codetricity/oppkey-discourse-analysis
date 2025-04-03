@@ -8,6 +8,7 @@ import pydeck as pdk
 import os
 from pathlib import Path
 import altair as alt
+import numpy as np
 
 # Set larger font sizes for all matplotlib charts
 plt.rcParams.update({
@@ -303,13 +304,17 @@ map_data.columns = ['latitude', 'longitude', 'country', 'is_eu',
 
 # Apply region filters
 if region_filter == "United States":
-    map_data = map_data[map_data['country'] == 'United States']
+    map_data = map_data[map_data['country'].str.contains('United States', case=False, na=False)]
 elif region_filter == "European Union":
     map_data = map_data[map_data['is_eu'] == True]
 elif region_filter == "Japan":
-    map_data = map_data[map_data['country'] == 'Japan']
+    map_data = map_data[map_data['country'].str.contains('Japan', case=False, na=False)]
 elif region_filter == "India":
-    map_data = map_data[map_data['country'] == 'India']
+    map_data = map_data[map_data['country'].str.contains('India', case=False, na=False)]
+
+# Print debug info
+if region_filter != "All Regions":
+    st.write(f"Debug: Found {len(map_data)} users in {region_filter}")
 
 # Keep all columns for tooltip display
 map_data = map_data.dropna(subset=['latitude', 'longitude'])
@@ -318,6 +323,33 @@ map_data = map_data.dropna(subset=['latitude', 'longitude'])
 map_data['organization_html'] = map_data['organization'].apply(
     lambda x: f"<b>Organization:</b> {x}<br/>" if pd.notna(x) else ""
 )
+
+# Debugging: Print the number of points
+st.write(f"Debug: Total points in map_data: {len(map_data)}")
+
+# Debugging: Check if DaisukeHohjoh is present in map_data
+daisuke_present = map_data[map_data['username'].str.contains('DaisukeHohjoh', case=False, na=False)]
+st.write(f"Debug: DaisukeHohjoh entries in map_data: {len(daisuke_present)}")
+
+# Add a search box for filtering by username
+username_search = st.text_input("Search by username:")
+
+# Filter map_data based on the search input
+if username_search:
+    map_data = map_data[map_data['username'].str.contains(username_search, case=False, na=False)]
+
+# Debugging: Check the number of entries after filtering
+st.write(f"Debug: Number of entries in map_data after filtering: {len(map_data)}")
+
+# Function to add jitter to latitude and longitude
+def add_jitter(lat, lon, jitter_amount=0.0001):
+    jittered_lat = lat + np.random.uniform(-jitter_amount, jitter_amount)
+    jittered_lon = lon + np.random.uniform(-jitter_amount, jitter_amount)
+    return jittered_lat, jittered_lon
+
+# Apply jitter to map_data
+map_data['latitude'], map_data['longitude'] = zip(*map_data.apply(
+    lambda row: add_jitter(row['latitude'], row['longitude']), axis=1))
 
 # Create the deck map
 view_state = pdk.ViewState(
@@ -332,12 +364,12 @@ scatter_layer = pdk.Layer(
     map_data,
     get_position=['longitude', 'latitude'],
     get_color=[255, 0, 0, 140],  # Red with some transparency
-    get_radius=25000,  # Reduced size of the points
-    radius_min_pixels=3,  # Minimum radius when zoomed out
-    radius_max_pixels=15,  # Maximum radius when zoomed in
+    get_radius=10000,  # Base radius in meters
+    radius_min_pixels=1,  # Minimum size in pixels when zoomed out
+    radius_max_pixels=10,  # Maximum size in pixels when zoomed in
     pickable=True,
     auto_highlight=True,
-    highlight_color=[255, 0, 0, 200]  # Highlight color when hovering
+    highlight_color=[255, 0, 0, 200]
 )
 
 # Create and display the map
