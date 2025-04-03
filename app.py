@@ -7,6 +7,17 @@ import pytz
 import pydeck as pdk
 import os
 from pathlib import Path
+import altair as alt
+
+# Set larger font sizes for all matplotlib charts
+plt.rcParams.update({
+    'font.size': 14,
+    'axes.titlesize': 18,
+    'axes.labelsize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
+    'legend.fontsize': 14
+})
 
 # Set page config including browser tab title
 st.set_page_config(
@@ -14,6 +25,61 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+
+# Add custom CSS for larger metric fonts
+st.markdown("""
+    <style>
+    [data-testid="stMetricValue"] {
+        font-size: 50px !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+    }
+    [data-testid="stMetricLabel"] > label {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="stMetricLabel"] div {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="metric-container"] label {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+    }
+    .css-1wivap2 {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# After the page config and before the first chart
+# Add custom CSS for larger chart fonts
+st.markdown("""
+    <style>
+    /* Increase font size for chart axes, labels, and ticks */
+    .js-plotly-plot .plotly text, 
+    g.ytitle, g.xtitle, 
+    .chart-wrapper text,
+    .svg-container text {
+        font-size: 16px !important;
+    }
+    
+    /* Increase font size for chart titles */
+    .js-plotly-plot .plotly .gtitle,
+    .chart-wrapper .chart-title {
+        font-size: 20px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Increase Altair chart text */
+    .vega-embed text {
+        font-size: 16px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # Password Protection
 def check_password():
@@ -136,9 +202,8 @@ def extract_countries(location):
         parts = location.split(',')
         if len(parts) == 0:
             return parts[0]
-        return parts[-1]
+        return parts[-1].strip()  # Add strip() to remove any whitespace
     return None
-
 
 all_data['country'] = all_data['last_ip_country'].apply(extract_countries)
 users_per_country = all_data.groupby('country')['user_id'].nunique()
@@ -146,13 +211,70 @@ countries = users_per_country.dropna().nunique()
 
 # Writing data
 col1, col2, col3 = st.columns(3)
-col1.metric(label="360 Camera Devs", value=unique_user_ids, border=True)
-col2.metric(label="Unique Organizations", value=unique_orgs, border=True)
-col3.metric(label="Countries", value=countries, border=True)
+
+# Custom HTML for metrics with larger labels
+col1.markdown(f"""
+    <div style='text-align: center; padding: 1rem; border: 1px solid rgba(49, 51, 63, 0.2); border-radius: 0.5rem;'>
+        <div style='font-size: 24px; font-weight: 600; margin-bottom: 0.5rem;'>360 Camera Devs</div>
+        <div style='font-size: 50px; font-weight: 500;'>{unique_user_ids}</div>
+    </div>
+""", unsafe_allow_html=True)
+
+col2.markdown(f"""
+    <div style='text-align: center; padding: 1rem; border: 1px solid rgba(49, 51, 63, 0.2); border-radius: 0.5rem;'>
+        <div style='font-size: 24px; font-weight: 600; margin-bottom: 0.5rem;'>Unique Organizations</div>
+        <div style='font-size: 50px; font-weight: 500;'>{unique_orgs}</div>
+    </div>
+""", unsafe_allow_html=True)
+
+col3.markdown(f"""
+    <div style='text-align: center; padding: 1rem; border: 1px solid rgba(49, 51, 63, 0.2); border-radius: 0.5rem;'>
+        <div style='font-size: 24px; font-weight: 600; margin-bottom: 0.5rem;'>Countries</div>
+        <div style='font-size: 50px; font-weight: 500;'>{int(countries)}</div>
+    </div>
+""", unsafe_allow_html=True)
 
 # Bar chart with country
-st.write("Top 20 Countries With Most Users")
-st.bar_chart(data=users_per_country.nlargest(20))
+st.write("Top 10 Countries With Most Users")
+
+# Create horizontal bar chart with larger fonts
+# Prepare the data
+top_countries = users_per_country.nlargest(10).reset_index()
+top_countries.columns = ['Country', 'Users']
+
+# Sort by Users ascending for left-to-right
+top_countries = top_countries.sort_values('Users', ascending=False)
+
+# Replace long country names with abbreviations
+country_replacements = {
+    'United States': 'USA',
+    'United Kingdom': 'UK',
+    'United States of America': 'USA'
+}
+
+# Apply the replacements
+top_countries['Country'] = top_countries['Country'].replace(country_replacements)
+
+# Then create your chart with the modified data
+chart = alt.Chart(top_countries).mark_bar().encode(
+    x=alt.X('Users:Q', axis=alt.Axis(labelFontSize=18)),
+    y=alt.Y('Country:N', 
+            sort=top_countries['Country'].tolist(),
+            axis=alt.Axis(labelFontSize=18, title=None))
+).properties(
+    width=800,
+    height=500
+).configure_axis(
+    labelFontSize=18,
+    titleFontSize=20
+).configure_title(
+    fontSize=24,
+    font='Arial',
+    anchor='start',
+    fontWeight=600
+)
+
+st.altair_chart(chart, use_container_width=False)
 
 # Add the 9 years image at 60% width
 col1, col2, col3 = st.columns([1, 3, 1])
@@ -224,15 +346,16 @@ deck = pdk.Deck(
     initial_view_state=view_state,
     map_style='mapbox://styles/mapbox/light-v9',
     tooltip={
-        "html": "<b>Username:</b> {username}<br/>"
-                "{organization_html}"
-                "<b>Location:</b> {city}, {state}, {country}<br/>"
-                "<b>Posts Read:</b> {posts_read}",
+        "html": """
+        <div style="font-size: 18px; font-family: Arial; padding: 10px; background-color: white; border-radius: 5px; box-shadow: 2px 2px 10px rgba(0,0,0,0.3);">
+            <div style="font-weight: bold; margin-bottom: 5px;">Username: {username}</div>
+            {organization_html}
+            <div style="margin-top: 5px;"><b>Location:</b> {city}, {state}, {country}</div>
+            <div style="margin-top: 5px;"><b>Posts Read:</b> {posts_read}</div>
+        </div>
+        """,
         "style": {
-            "backgroundColor": "white",
-            "color": "black",
-            "fontSize": "0.8em",
-            "padding": "5px"
+            "z-index": "10000"
         }
     }
 )
@@ -289,10 +412,13 @@ if granularity == "Daily":
     registrations = filtered_time_data.groupby(filtered_time_data['created_at'].dt.date).size()
     xlabel = "Date"
 else:
-    # For monthly view, use start_time of month instead of period to preserve timezone
-    registrations = filtered_time_data.groupby(filtered_time_data['created_at'].dt.to_period('M').dt.start_time).size()
-    # Format the datetime index to show just year-month
-    registrations.index = registrations.index.strftime('%Y-%m')
+    # For monthly view, use year and month directly
+    registrations = filtered_time_data.groupby([
+        filtered_time_data['created_at'].dt.year,
+        filtered_time_data['created_at'].dt.month
+    ]).size()
+    # Convert multi-index to datetime for proper sorting
+    registrations.index = pd.to_datetime(registrations.index.map(lambda x: f"{x[0]}-{x[1]:02d}-01"))
     xlabel = "Month"
 
 # Create line chart
